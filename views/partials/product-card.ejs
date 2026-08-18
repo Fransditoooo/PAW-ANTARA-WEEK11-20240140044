@@ -1,0 +1,31 @@
+<%
+const isAvailable = product.stock > 0;
+const badgeLabel = isAvailable ? 'Tersedia' : 'Habis';
+const badgeColor = isAvailable ? 'green' : 'red';
+%>
+<div
+  class="product-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+  data-stock="<%= product.stock %>"
+>
+  <div class="flex items-start justify-between mb-2">
+    <h3 class="font-semibold text-gray-800 dark:text-gray-100"><%= product.name %></h3>
+    <%- include('badge', { label: badgeLabel, color: badgeColor }) %>
+  </div>
+  <p class="text-sm text-gray-500 dark:text-gray-400 mb-3"><%= product.description || 'Tanpa deskripsi' %></p>
+  <div class="flex items-center justify-between mb-3">
+    <span class="text-blue-600 dark:text-blue-400 font-bold">
+      Rp<%= product.price.toLocaleString('id-ID') %>
+    </span>
+    <span class="text-xs text-gray-400 dark:text-gray-500">Stok: <%= product.stock %></span>
+  </div>
+  <button
+    class="add-to-cart-btn w-full <%= isAvailable ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' %> text-sm font-semibold py-2 rounded-lg transition-colors"
+    data-id="<%= product.id %>"
+    data-name="<%= product.name %>"
+    data-price="<%= product.price %>"
+    data-stock="<%= product.stock %>"
+    <%= isAvailable ? '' : 'disabled' %>
+  >
+    <%= isAvailable ? '+ Tambah ke Keranjang' : 'Stok Habis' %>
+  </button>
+</div>
