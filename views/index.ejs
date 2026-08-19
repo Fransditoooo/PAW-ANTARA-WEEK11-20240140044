@@ -1,119 +1,1402 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= storeName %></title>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Toko Kita</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <script>
-    tailwind.config = { darkMode: 'class' };
+    tailwind.config = {
+      darkMode: "class"
+    };
   </script>
-  <!--
-    Cegah "flash" putih sebelum JS lain jalan: baca preferensi dark mode
-    dari localStorage SEBELUM body di-render.
-  -->
+
+  <!-- Theme initialization -->
   <script>
-    if (
-      localStorage.getItem('theme') === 'dark' ||
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    ) {
-      document.documentElement.classList.add('dark');
+    try {
+      const savedTheme = localStorage.getItem("theme");
+
+      if (
+        savedTheme === "dark" ||
+        (
+          !savedTheme &&
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        )
+      ) {
+        document.documentElement.classList.add("dark");
+      }
+    } catch (error) {
+      console.log("Theme initialization:", error);
     }
   </script>
+
+  <style>
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .line-clamp-1 {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+  </style>
+
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
 
-  <!-- NAVBAR -->
-  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100"><%= storeName %></h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Katalog produk & keranjang</p>
-      </div>
 
-      <div class="flex items-center gap-3">
-        <!-- toggle dark/light mode -->
-        <button
-          id="theme-toggle"
-          class="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:opacity-80"
-          title="Ganti tema"
-        >
-          <span id="theme-icon">🌙</span>
-        </button>
+<body
+  class="
+    min-h-screen
+    bg-gray-50
+    dark:bg-gray-950
+    text-gray-800
+    dark:text-gray-100
+  "
+>
 
-        <!-- tombol keranjang, angkanya (badge) di-render dari state, bukan hardcode -->
-        <button
-          id="cart-toggle"
-          class="relative w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:opacity-80"
-          title="Buka keranjang"
-        >
-          🛒
-          <span
-            id="cart-badge"
-            class="hidden absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
-          >0</span>
-        </button>
-      </div>
-    </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-gray-700 dark:text-gray-200">Produk Kami</h2>
+<!-- ====================================================== -->
+<!-- NAVBAR -->
+<!-- ====================================================== -->
 
-      <div id="filter-buttons" class="flex gap-2">
-        <button data-filter="all" class="filter-btn px-3 py-1 text-sm rounded-lg bg-blue-600 text-white">Semua</button>
-        <button data-filter="available" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Tersedia</button>
-        <button data-filter="out" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Habis</button>
-      </div>
-    </div>
+<header
+  class="
+    sticky
+    top-0
+    z-40
+    bg-white/90
+    dark:bg-gray-950/90
+    backdrop-blur-xl
+    border-b
+    border-gray-200
+    dark:border-gray-800
+  "
+>
 
-    <!-- render awal dari server (SSR), difilter ulang di client tanpa reload -->
-    <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <% products.forEach(function(product) { %>
-        <%- include('partials/product-card', { product }) %>
-      <% }) %>
-    </div>
-
-    <p id="empty-state" class="hidden text-center text-gray-400 dark:text-gray-500 py-8">
-      Gak ada produk yang cocok sama filter ini
-    </p>
-  </main>
-
-  <!-- OVERLAY + DRAWER KERANJANG (murni client-rendered, isinya dari cartStore) -->
-  <div id="cart-overlay" class="hidden fixed inset-0 bg-black/40 z-20"></div>
-
-  <aside
-    id="cart-drawer"
-    class="fixed top-0 right-0 h-full w-full sm:w-96 bg-white dark:bg-gray-800 shadow-2xl z-30 translate-x-full transition-transform duration-300 flex flex-col"
+  <div
+    class="
+      max-w-7xl
+      mx-auto
+      px-4
+      sm:px-6
+      lg:px-8
+      h-20
+      flex
+      items-center
+      justify-between
+    "
   >
-    <div class="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-      <h2 class="font-semibold text-gray-800 dark:text-gray-100">Keranjang Belanja</h2>
-      <button id="cart-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl">✕</button>
-    </div>
 
-    <div id="cart-items" class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-      <!-- item keranjang di-render di sini lewat JS -->
-    </div>
+    <!-- LOGO -->
 
-    <div class="border-t border-gray-200 dark:border-gray-700 px-4 py-4">
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
-        <span id="cart-total" class="font-bold text-lg text-gray-800 dark:text-gray-100">Rp0</span>
+    <a
+      href="/"
+      class="flex items-center gap-3"
+    >
+
+      <div
+        class="
+          w-11
+          h-11
+          rounded-2xl
+          bg-blue-600
+          flex
+          items-center
+          justify-center
+          text-xl
+          shadow-lg
+          shadow-blue-600/30
+        "
+      >
+        🛍️
       </div>
-      <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm">
+
+      <div>
+
+        <h1
+          class="
+            font-extrabold
+            text-lg
+            text-gray-900
+            dark:text-white
+          "
+        >
+          Toko Kita
+        </h1>
+
+        <p
+          class="
+            text-xs
+            text-gray-400
+          "
+        >
+          Belanja mudah & nyaman
+        </p>
+
+      </div>
+
+    </a>
+
+
+    <!-- HEADER ACTION -->
+
+    <div class="flex items-center gap-2">
+
+      <!-- THEME -->
+
+      <button
+        id="theme-toggle"
+        type="button"
+        title="Ganti tema"
+        class="
+          w-11
+          h-11
+          rounded-xl
+          bg-gray-100
+          dark:bg-gray-900
+          hover:bg-gray-200
+          dark:hover:bg-gray-800
+          transition
+          flex
+          items-center
+          justify-center
+        "
+      >
+
+        <span id="theme-icon">
+          🌙
+        </span>
+
+      </button>
+
+
+      <!-- CART -->
+
+      <button
+        id="cart-toggle"
+        type="button"
+        title="Buka keranjang"
+        class="
+          relative
+          w-11
+          h-11
+          rounded-xl
+          bg-gray-100
+          dark:bg-gray-900
+          hover:bg-gray-200
+          dark:hover:bg-gray-800
+          transition
+          flex
+          items-center
+          justify-center
+          text-lg
+        "
+      >
+
+        🛒
+
+        <span
+          id="cart-badge"
+          class="
+            hidden
+            absolute
+            -top-1
+            -right-1
+            min-w-[21px]
+            h-5
+            px-1
+            rounded-full
+            bg-red-500
+            text-white
+            text-[10px]
+            font-extrabold
+            items-center
+            justify-center
+          "
+        >
+          0
+        </span>
+
+      </button>
+
+    </div>
+
+  </div>
+
+</header>
+
+
+<!-- ====================================================== -->
+<!-- MAIN -->
+<!-- ====================================================== -->
+
+<main
+  class="
+    max-w-7xl
+    mx-auto
+    px-4
+    sm:px-6
+    lg:px-8
+    py-8
+  "
+>
+
+
+<!-- ====================================================== -->
+<!-- HERO -->
+<!-- ====================================================== -->
+
+<section
+  class="
+    relative
+    overflow-hidden
+    rounded-[2rem]
+    bg-gradient-to-br
+    from-blue-600
+    via-indigo-600
+    to-purple-700
+    p-7
+    md:p-10
+    text-white
+    shadow-2xl
+    mb-10
+  "
+>
+
+  <div
+    class="
+      absolute
+      -top-20
+      -right-20
+      w-64
+      h-64
+      rounded-full
+      bg-white/10
+      blur-3xl
+    "
+  ></div>
+
+
+  <div
+    class="
+      absolute
+      -bottom-20
+      left-1/3
+      w-64
+      h-64
+      rounded-full
+      bg-purple-400/20
+      blur-3xl
+    "
+  ></div>
+
+
+  <div
+    class="
+      relative
+      grid
+      md:grid-cols-2
+      gap-8
+      items-center
+    "
+  >
+
+    <div>
+
+      <span
+        class="
+          inline-flex
+          items-center
+          gap-2
+          px-3
+          py-1.5
+          rounded-full
+          bg-white/15
+          border
+          border-white/20
+          text-xs
+          font-bold
+          mb-4
+        "
+      >
+        ✨ Koleksi Terbaik
+      </span>
+
+
+      <h2
+        class="
+          text-3xl
+          md:text-5xl
+          font-black
+          leading-tight
+        "
+      >
+        Belanja Produk
+        <br>
+        Favoritmu.
+      </h2>
+
+
+      <p
+        class="
+          mt-4
+          text-blue-100
+          max-w-xl
+          leading-7
+        "
+      >
+        Temukan berbagai produk pilihan
+        dengan harga terbaik. Pilih produk,
+        masukkan ke keranjang, lalu checkout
+        dengan mudah.
+      </p>
+
+
+      <a
+        href="#produk"
+        class="
+          inline-flex
+          mt-6
+          px-5
+          py-3
+          rounded-xl
+          bg-white
+          text-blue-700
+          font-bold
+          hover:bg-blue-50
+          transition
+        "
+      >
+        Mulai Belanja →
+      </a>
+
+    </div>
+
+
+    <div
+      class="
+        hidden
+        md:flex
+        justify-center
+        text-[9rem]
+      "
+    >
+      🛍️
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- PRODUCT SECTION -->
+<!-- ====================================================== -->
+
+<section id="produk">
+
+
+  <!-- HEADER -->
+
+  <div
+    class="
+      flex
+      flex-col
+      lg:flex-row
+      lg:items-end
+      lg:justify-between
+      gap-5
+      mb-6
+    "
+  >
+
+    <div>
+
+      <p
+        class="
+          text-sm
+          font-bold
+          text-blue-600
+          uppercase
+          tracking-wider
+        "
+      >
+        Katalog
+      </p>
+
+
+      <h2
+        class="
+          mt-1
+          text-2xl
+          md:text-3xl
+          font-black
+          text-gray-900
+          dark:text-white
+        "
+      >
+        Produk Kami
+      </h2>
+
+
+      <p
+        id="result-info"
+        class="
+          mt-1
+          text-sm
+          text-gray-400
+        "
+      >
+        Memuat produk...
+      </p>
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div
+      class="
+        relative
+        w-full
+        lg:w-96
+      "
+    >
+
+      <span
+        class="
+          absolute
+          left-4
+          top-1/2
+          -translate-y-1/2
+          text-gray-400
+        "
+      >
+        🔍
+      </span>
+
+
+      <input
+        id="search-input"
+        type="text"
+        autocomplete="off"
+        placeholder="Cari produk..."
+        class="
+          w-full
+          pl-11
+          pr-4
+          py-3.5
+          rounded-2xl
+          border
+          border-gray-200
+          dark:border-gray-800
+          bg-white
+          dark:bg-gray-900
+          outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          transition
+        "
+      >
+
+    </div>
+
+  </div>
+
+
+  <!-- FILTER + SORT -->
+
+  <div
+    class="
+      flex
+      flex-col
+      md:flex-row
+      md:items-center
+      md:justify-between
+      gap-4
+      mb-7
+    "
+  >
+
+    <!-- FILTER -->
+
+    <div
+      id="filter-buttons"
+      class="
+        flex
+        flex-wrap
+        gap-2
+      "
+    >
+
+      <button
+        type="button"
+        data-filter="all"
+        class="
+          filter-btn
+          px-4
+          py-2.5
+          rounded-xl
+          bg-blue-600
+          text-white
+          text-sm
+          font-bold
+        "
+      >
+        Semua
+      </button>
+
+
+      <button
+        type="button"
+        data-filter="available"
+        class="
+          filter-btn
+          px-4
+          py-2.5
+          rounded-xl
+          bg-gray-100
+          dark:bg-gray-900
+          text-gray-700
+          dark:text-gray-300
+          text-sm
+          font-bold
+          hover:bg-gray-200
+          dark:hover:bg-gray-800
+          transition
+        "
+      >
+        Tersedia
+      </button>
+
+
+      <button
+        type="button"
+        data-filter="out"
+        class="
+          filter-btn
+          px-4
+          py-2.5
+          rounded-xl
+          bg-gray-100
+          dark:bg-gray-900
+          text-gray-700
+          dark:text-gray-300
+          text-sm
+          font-bold
+          hover:bg-gray-200
+          dark:hover:bg-gray-800
+          transition
+        "
+      >
+        Habis
+      </button>
+
+    </div>
+
+
+    <!-- SORT -->
+
+    <select
+      id="sort-select"
+      class="
+        px-4
+        py-2.5
+        rounded-xl
+        border
+        border-gray-200
+        dark:border-gray-800
+        bg-white
+        dark:bg-gray-900
+        text-sm
+        font-semibold
+        outline-none
+        focus:ring-2
+        focus:ring-blue-500
+      "
+    >
+
+      <option value="default">
+        Urutan Default
+      </option>
+
+      <option value="name">
+        Nama A-Z
+      </option>
+
+      <option value="price-low">
+        Harga Terendah
+      </option>
+
+      <option value="price-high">
+        Harga Tertinggi
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <!-- ==================================================== -->
+  <!-- PRODUCT LIST -->
+  <!-- ==================================================== -->
+
+  <div
+    id="product-list"
+    class="
+      grid
+      grid-cols-1
+      sm:grid-cols-2
+      lg:grid-cols-3
+      xl:grid-cols-4
+      gap-5
+    "
+  >
+
+    <% if (typeof products !== "undefined" && Array.isArray(products)) { %>
+
+      <% products.forEach(function(product) { %>
+
+        <%- include(
+          "partials/product-card",
+          { product: product }
+        ) %>
+
+      <% }); %>
+
+    <% } %>
+
+  </div>
+
+
+  <!-- ==================================================== -->
+  <!-- EMPTY STATE -->
+  <!-- ==================================================== -->
+
+  <div
+    id="empty-state"
+    class="
+      hidden
+      text-center
+      py-20
+    "
+  >
+
+    <div class="text-6xl mb-4">
+      🔎
+    </div>
+
+
+    <h3
+      class="
+        text-xl
+        font-extrabold
+        text-gray-800
+        dark:text-white
+      "
+    >
+      Produk tidak ditemukan
+    </h3>
+
+
+    <p
+      class="
+        mt-2
+        text-sm
+        text-gray-400
+      "
+    >
+      Coba gunakan kata pencarian
+      atau filter lainnya.
+    </p>
+
+  </div>
+
+</section>
+
+</main>
+
+
+<!-- ====================================================== -->
+<!-- CART OVERLAY -->
+<!-- ====================================================== -->
+
+<div
+  id="cart-overlay"
+  class="
+    hidden
+    fixed
+    inset-0
+    z-50
+    bg-black/60
+    backdrop-blur-sm
+  "
+></div>
+
+
+<!-- ====================================================== -->
+<!-- CART DRAWER -->
+<!-- ====================================================== -->
+
+<aside
+  id="cart-drawer"
+  class="
+    fixed
+    top-0
+    right-0
+    z-[60]
+    h-full
+    w-full
+    sm:w-[430px]
+    flex
+    flex-col
+    bg-white
+    dark:bg-gray-950
+    shadow-2xl
+    translate-x-full
+    transition-transform
+    duration-300
+  "
+>
+
+
+  <!-- CART HEADER -->
+
+  <div
+    class="
+      px-5
+      py-5
+      border-b
+      border-gray-200
+      dark:border-gray-800
+      flex
+      items-center
+      justify-between
+    "
+  >
+
+    <div>
+
+      <h2
+        class="
+          text-lg
+          font-extrabold
+        "
+      >
+        Keranjang Belanja
+      </h2>
+
+
+      <p
+        id="cart-summary"
+        class="
+          text-xs
+          text-gray-400
+          mt-1
+        "
+      >
+        0 item
+      </p>
+
+    </div>
+
+
+    <button
+      id="cart-close"
+      type="button"
+      class="
+        w-10
+        h-10
+        rounded-xl
+        bg-gray-100
+        dark:bg-gray-900
+        hover:bg-gray-200
+        dark:hover:bg-gray-800
+        transition
+      "
+    >
+      ✕
+    </button>
+
+  </div>
+
+
+  <!-- CART ITEMS -->
+
+  <div
+    id="cart-items"
+    class="
+      flex-1
+      overflow-y-auto
+      p-5
+      space-y-3
+    "
+  ></div>
+
+
+  <!-- CART FOOTER -->
+
+  <div
+    class="
+      p-5
+      border-t
+      border-gray-200
+      dark:border-gray-800
+    "
+  >
+
+    <div
+      class="
+        flex
+        items-center
+        justify-between
+        mb-4
+      "
+    >
+
+      <span
+        class="
+          text-sm
+          text-gray-500
+          dark:text-gray-400
+        "
+      >
+        Total
+      </span>
+
+
+      <strong
+        id="cart-total"
+        class="
+          text-xl
+          font-black
+          text-blue-600
+        "
+      >
+        Rp0
+      </strong>
+
+    </div>
+
+
+    <div class="grid grid-cols-2 gap-2">
+
+      <button
+        id="clear-cart"
+        type="button"
+        class="
+          py-3
+          rounded-xl
+          bg-gray-100
+          dark:bg-gray-900
+          hover:bg-gray-200
+          dark:hover:bg-gray-800
+          font-bold
+          text-sm
+          transition
+        "
+      >
+        Kosongkan
+      </button>
+
+
+      <button
+        id="checkout-button"
+        type="button"
+        class="
+          py-3
+          rounded-xl
+          bg-blue-600
+          hover:bg-blue-700
+          text-white
+          font-bold
+          text-sm
+          transition
+        "
+      >
         Checkout
       </button>
+
     </div>
-  </aside>
 
-  <script>
-    window.__INITIAL_PRODUCTS__ = <%- JSON.stringify(products) %>;
-  </script>
+  </div>
 
-  <script src="/js/store.js"></script>
-  <script src="/js/theme.js"></script>
-  <script src="/js/cart.js"></script>
-  <script src="/js/products.js"></script>
+</aside>
+
+
+<!-- ====================================================== -->
+<!-- CHECKOUT MODAL -->
+<!-- ====================================================== -->
+
+<div
+  id="checkout-modal"
+  class="
+    hidden
+    fixed
+    inset-0
+    z-[100]
+    bg-black/70
+    backdrop-blur-sm
+    items-center
+    justify-center
+    p-4
+  "
+>
+
+  <div
+    class="
+      w-full
+      max-w-xl
+      max-h-[92vh]
+      overflow-y-auto
+      rounded-3xl
+      bg-white
+      dark:bg-gray-950
+      shadow-2xl
+    "
+  >
+
+    <!-- CHECKOUT HEADER -->
+
+    <div
+      class="
+        px-6
+        py-5
+        border-b
+        border-gray-200
+        dark:border-gray-800
+        flex
+        justify-between
+        items-center
+      "
+    >
+
+      <div>
+
+        <h2 class="text-xl font-black">
+          Checkout
+        </h2>
+
+
+        <p
+          class="
+            text-xs
+            text-gray-400
+            mt-1
+          "
+        >
+          Lengkapi data pesanan kamu.
+        </p>
+
+      </div>
+
+
+      <button
+        id="checkout-close"
+        type="button"
+        class="
+          w-10
+          h-10
+          rounded-xl
+          bg-gray-100
+          dark:bg-gray-900
+          hover:bg-gray-200
+          dark:hover:bg-gray-800
+        "
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <!-- CHECKOUT FORM -->
+
+    <form
+      id="checkout-form"
+      class="p-6"
+    >
+
+
+      <!-- ORDER SUMMARY -->
+
+      <div
+        class="
+          p-4
+          rounded-2xl
+          bg-gray-50
+          dark:bg-gray-900
+          mb-6
+        "
+      >
+
+        <h3
+          class="
+            font-extrabold
+            mb-4
+          "
+        >
+          Ringkasan Pesanan
+        </h3>
+
+
+        <div
+          id="checkout-items"
+          class="space-y-2"
+        ></div>
+
+
+        <div
+          class="
+            mt-4
+            pt-4
+            border-t
+            border-gray-200
+            dark:border-gray-800
+            flex
+            items-center
+            justify-between
+          "
+        >
+
+          <span>
+            Total
+          </span>
+
+
+          <strong
+            id="checkout-total"
+            class="
+              text-lg
+              text-blue-600
+            "
+          >
+            Rp0
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <!-- CUSTOMER NAME -->
+
+      <label
+        for="customer-name"
+        class="
+          block
+          text-sm
+          font-bold
+          mb-2
+        "
+      >
+        Nama Lengkap
+      </label>
+
+
+      <input
+        id="customer-name"
+        type="text"
+        required
+        autocomplete="name"
+        class="
+          w-full
+          px-4
+          py-3
+          rounded-xl
+          border
+          border-gray-200
+          dark:border-gray-800
+          bg-white
+          dark:bg-gray-900
+          outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          mb-4
+        "
+        placeholder="Nama lengkap"
+      >
+
+
+      <!-- PHONE -->
+
+      <label
+        for="customer-phone"
+        class="
+          block
+          text-sm
+          font-bold
+          mb-2
+        "
+      >
+        Nomor WhatsApp
+      </label>
+
+
+      <input
+        id="customer-phone"
+        type="tel"
+        required
+        autocomplete="tel"
+        pattern="[0-9]{10,15}"
+        class="
+          w-full
+          px-4
+          py-3
+          rounded-xl
+          border
+          border-gray-200
+          dark:border-gray-800
+          bg-white
+          dark:bg-gray-900
+          outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          mb-4
+        "
+        placeholder="08xxxxxxxxxx"
+      >
+
+
+      <!-- ADDRESS -->
+
+      <label
+        for="customer-address"
+        class="
+          block
+          text-sm
+          font-bold
+          mb-2
+        "
+      >
+        Alamat Pengiriman
+      </label>
+
+
+      <textarea
+        id="customer-address"
+        rows="3"
+        required
+        autocomplete="street-address"
+        class="
+          w-full
+          px-4
+          py-3
+          rounded-xl
+          border
+          border-gray-200
+          dark:border-gray-800
+          bg-white
+          dark:bg-gray-900
+          outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          mb-4
+          resize-none
+        "
+        placeholder="Alamat lengkap"
+      ></textarea>
+
+
+      <!-- PAYMENT -->
+
+      <label
+        for="payment-method"
+        class="
+          block
+          text-sm
+          font-bold
+          mb-2
+        "
+      >
+        Metode Pembayaran
+      </label>
+
+
+      <select
+        id="payment-method"
+        required
+        class="
+          w-full
+          px-4
+          py-3
+          rounded-xl
+          border
+          border-gray-200
+          dark:border-gray-800
+          bg-white
+          dark:bg-gray-900
+          outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          mb-6
+        "
+      >
+
+        <option value="">
+          Pilih metode pembayaran
+        </option>
+
+        <option value="COD">
+          COD
+        </option>
+
+        <option value="Transfer Bank">
+          Transfer Bank
+        </option>
+
+        <option value="E-Wallet">
+          E-Wallet
+        </option>
+
+      </select>
+
+
+      <!-- BUTTON -->
+
+      <div class="grid grid-cols-2 gap-3">
+
+        <button
+          id="checkout-cancel"
+          type="button"
+          class="
+            py-3
+            rounded-xl
+            bg-gray-100
+            dark:bg-gray-900
+            hover:bg-gray-200
+            dark:hover:bg-gray-800
+            font-bold
+            transition
+          "
+        >
+          Batal
+        </button>
+
+
+        <button
+          type="submit"
+          class="
+            py-3
+            rounded-xl
+            bg-blue-600
+            hover:bg-blue-700
+            text-white
+            font-bold
+            transition
+          "
+        >
+          ✓ Buat Pesanan
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!-- ====================================================== -->
+<!-- FOOTER -->
+<!-- ====================================================== -->
+
+<footer
+  class="
+    mt-16
+    border-t
+    border-gray-200
+    dark:border-gray-800
+  "
+>
+
+  <div
+    class="
+      max-w-7xl
+      mx-auto
+      px-4
+      sm:px-6
+      lg:px-8
+      py-8
+      text-center
+    "
+  >
+
+    <p
+      class="
+        font-bold
+        text-gray-800
+        dark:text-white
+      "
+    >
+      🛍️ Toko Kita
+    </p>
+
+
+    <p
+      class="
+        mt-1
+        text-xs
+        text-gray-400
+      "
+    >
+      State Management • Dynamic Rendering • Data Driven Component
+    </p>
+
+  </div>
+
+</footer>
+
+
+<!-- ====================================================== -->
+<!-- JAVASCRIPT -->
+<!-- ====================================================== -->
+
+<script src="/js/store.js"></script>
+
+<script src="/js/theme.js"></script>
+
+<script src="/js/cart.js"></script>
+
+<script src="/js/products.js"></script>
+
+<script src="/js/checkout.js"></script>
+
+
 </body>
+
 </html>

@@ -1,6 +1,9 @@
 require('dotenv').config();
+
 const express = require('express');
 const session = require('express-session');
+const path = require('path');
+
 const { sequelize } = require('./models');
 
 const adminRoutes = require('./routes/admin.routes');
@@ -9,17 +12,55 @@ const pageRoutes = require('./routes/page.routes');
 
 const app = express();
 
+const PORT = Number(process.env.PORT) || 3000;
+
+// ========================================
+// VIEW ENGINE
+// ========================================
+
 app.set('view engine', 'ejs');
-app.set('views', './views');
-app.use(express.static('public'));
+
+app.set(
+  'views',
+  path.join(__dirname, 'views')
+);
+
+// ========================================
+// STATIC FILES
+// ========================================
+
+app.use(
+  express.static(
+    path.join(__dirname, 'public')
+  )
+);
+
+// ========================================
+// BODY PARSER
+// ========================================
 
 app.use(express.json());
 
 app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
+
+// ========================================
+// SESSION
+// ========================================
+
+app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'secret-default',
+    secret:
+      process.env.SESSION_SECRET ||
+      'secret-default',
+
     resave: false,
+
     saveUninitialized: false,
+
     cookie: {
       maxAge: 1000 * 60 * 60 * 24,
       httpOnly: true,
@@ -27,25 +68,62 @@ app.use(
   })
 );
 
-app.use('/api/admin', adminRoutes);
-app.use('/api/products', productRoutes);
-app.use('/', pageRoutes);
+// ========================================
+// ROUTES
+// ========================================
 
-const PORT = process.env.PORT || 3000;
+app.use(
+  '/api/admin',
+  adminRoutes
+);
+
+app.use(
+  '/api/products',
+  productRoutes
+);
+
+app.use(
+  '/',
+  pageRoutes
+);
+
+// ========================================
+// START SERVER
+// ========================================
 
 async function start() {
   try {
+    // Cek koneksi database
     await sequelize.authenticate();
-    console.log('Koneksi database berhasil');
 
-    await sequelize.sync();
-    console.log('Sync model selesai');
+    console.log(
+      'Koneksi database berhasil'
+    );
 
-    app.listen(PORT, () => {
-      console.log(`Server jalan di http://localhost:${PORT}`);
+    // Sinkronisasi model
+    await sequelize.sync({
+      alter: true,
     });
+
+    console.log(
+      'Sync model selesai'
+    );
+
+    // Jalankan server
+    app.listen(PORT, () => {
+      console.log(
+        `Server jalan di http://localhost:${PORT}`
+      );
+    });
+
   } catch (err) {
-    console.error('Gagal konek ke database:', err.message);
+    console.error(
+      'Gagal menjalankan aplikasi:'
+    );
+
+    console.error(err.message);
+
+    process.exit(1);
   }
 }
 

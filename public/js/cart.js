@@ -1,130 +1,695 @@
-// Cart disimpen di localStorage juga, biar gak ilang kalo reload halaman
+// ======================================================
+// LOAD CART
+// ======================================================
+
 function loadCartFromStorage() {
+
   try {
-    const saved = localStorage.getItem('cart');
-    return saved ? JSON.parse(saved) : [];
-  } catch {
+
+    const saved =
+      localStorage.getItem('cart');
+
+    return saved
+      ? JSON.parse(saved)
+      : [];
+
+  } catch (error) {
+
+    console.error(
+      'Gagal membaca cart:',
+      error
+    );
+
     return [];
+
   }
+
 }
+
+
+// ======================================================
+// CART STORE
+// ======================================================
 
 const cartStore = createStore({
-  items: loadCartFromStorage(), // [{ id, name, price, qty }]
-  isOpen: false,
+
+  items:
+    loadCartFromStorage(),
+
+  isOpen:
+    false
+
 });
 
-// --- helper hitung nilai turunan dari state (derived value) ---
+
+// ======================================================
+// HELPERS
+// ======================================================
+
 function getTotalQty(items) {
-  return items.reduce((sum, item) => sum + item.qty, 0);
+
+  return items.reduce(
+    (total, item) =>
+      total + Number(item.qty || 0),
+    0
+  );
+
 }
+
+
 function getTotalPrice(items) {
-  return items.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  return items.reduce(
+    (total, item) =>
+      total +
+      Number(item.price || 0) *
+      Number(item.qty || 0),
+    0
+  );
+
 }
 
-// --- komponen item keranjang (berbasis data) ---
+
+function formatRupiah(value) {
+
+  return Number(value || 0)
+    .toLocaleString('id-ID');
+
+}
+
+
+// ======================================================
+// RENDER CART ITEM
+// ======================================================
+
 function renderCartItem(item) {
+
+  const image =
+    item.image ||
+    'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=300&q=80';
+
+
   return `
-    <div class="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
-      <div class="flex-1">
-        <p class="text-sm font-medium text-gray-800 dark:text-gray-100">${item.name}</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">Rp${item.price.toLocaleString('id-ID')} / item</p>
+
+    <div
+      class="
+        flex
+        gap-3
+        p-3
+        rounded-2xl
+        border
+        border-gray-200
+        dark:border-gray-800
+        bg-white
+        dark:bg-gray-900
+      "
+    >
+
+      <img
+        src="${image}"
+        alt="${item.name}"
+        class="
+          w-16
+          h-16
+          rounded-xl
+          object-cover
+        "
+      >
+
+
+      <div class="flex-1 min-w-0">
+
+        <p
+          class="
+            text-sm
+            font-bold
+            truncate
+          "
+        >
+          ${item.name}
+        </p>
+
+        <p
+          class="
+            text-xs
+            text-gray-400
+            mt-1
+          "
+        >
+          Rp${formatRupiah(item.price)}
+        </p>
+
+
+        <div
+          class="
+            flex
+            items-center
+            gap-2
+            mt-2
+          "
+        >
+
+          <button
+            type="button"
+            class="
+              cart-decrease
+              w-7
+              h-7
+              rounded-lg
+              bg-gray-100
+              dark:bg-gray-800
+              font-bold
+            "
+            data-id="${item.id}"
+          >
+            −
+          </button>
+
+
+          <span
+            class="
+              w-6
+              text-center
+              text-sm
+              font-bold
+            "
+          >
+            ${item.qty}
+          </span>
+
+
+          <button
+            type="button"
+            class="
+              cart-increase
+              w-7
+              h-7
+              rounded-lg
+              bg-blue-600
+              text-white
+              font-bold
+            "
+            data-id="${item.id}"
+          >
+            +
+          </button>
+
+        </div>
+
       </div>
-      <div class="flex items-center gap-2">
-        <button class="cart-decrease w-6 h-6 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" data-id="${item.id}">-</button>
-        <span class="text-sm w-5 text-center">${item.qty}</span>
-        <button class="cart-increase w-6 h-6 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" data-id="${item.id}">+</button>
+
+
+      <div
+        class="
+          text-right
+          text-sm
+          font-bold
+          text-blue-600
+        "
+      >
+        Rp${formatRupiah(
+          item.price * item.qty
+        )}
       </div>
+
     </div>
+
   `;
+
 }
 
-/**
- * INI YANG BIKIN BADGE "DINAMIS": tiap kali cartStore berubah
- * (nambah/kurang/hapus item), fungsi ini otomatis dipanggil ulang
- * lewat subscribe(), badge & drawer selalu sinkron sama state.
- */
+
+// ======================================================
+// RENDER CART
+// ======================================================
+
 function renderCart(state) {
-  const badge = document.getElementById('cart-badge');
-  const itemsContainer = document.getElementById('cart-items');
-  const totalEl = document.getElementById('cart-total');
-  const drawer = document.getElementById('cart-drawer');
-  const overlay = document.getElementById('cart-overlay');
 
-  const totalQty = getTotalQty(state.items);
-  const totalPrice = getTotalPrice(state.items);
+  const badge =
+    document.getElementById(
+      'cart-badge'
+    );
 
-  // update badge angka
+  const summary =
+    document.getElementById(
+      'cart-summary'
+    );
+
+  const itemsContainer =
+    document.getElementById(
+      'cart-items'
+    );
+
+  const totalElement =
+    document.getElementById(
+      'cart-total'
+    );
+
+  const drawer =
+    document.getElementById(
+      'cart-drawer'
+    );
+
+  const overlay =
+    document.getElementById(
+      'cart-overlay'
+    );
+
+
+  if (
+    !badge ||
+    !itemsContainer ||
+    !totalElement
+  ) {
+
+    return;
+
+  }
+
+
+  const totalQty =
+    getTotalQty(state.items);
+
+  const totalPrice =
+    getTotalPrice(state.items);
+
+
+  // BADGE
+
   if (totalQty > 0) {
-    badge.textContent = totalQty > 99 ? '99+' : totalQty;
-    badge.classList.remove('hidden');
+
+    badge.textContent =
+      totalQty > 99
+        ? '99+'
+        : totalQty;
+
+    badge.classList.remove(
+      'hidden'
+    );
+
+    badge.classList.add(
+      'flex'
+    );
+
   } else {
-    badge.classList.add('hidden');
+
+    badge.classList.add(
+      'hidden'
+    );
+
+    badge.classList.remove(
+      'flex'
+    );
+
   }
 
-  // render isi drawer
+
+  // SUMMARY
+
+  if (summary) {
+
+    summary.textContent =
+      `${totalQty} item`;
+
+  }
+
+
+  // ITEMS
+
   if (state.items.length === 0) {
-    itemsContainer.innerHTML = '<p class="text-center text-gray-400 dark:text-gray-500 py-8">Keranjang masih kosong</p>';
+
+    itemsContainer.innerHTML = `
+
+      <div
+        class="
+          py-16
+          text-center
+        "
+      >
+
+        <div
+          class="
+            text-5xl
+            mb-4
+          "
+        >
+          🛒
+        </div>
+
+        <p
+          class="
+            font-bold
+          "
+        >
+          Keranjang masih kosong
+        </p>
+
+        <p
+          class="
+            text-xs
+            text-gray-400
+            mt-1
+          "
+        >
+          Yuk pilih produk favoritmu.
+        </p>
+
+      </div>
+
+    `;
+
   } else {
-    itemsContainer.innerHTML = state.items.map(renderCartItem).join('');
+
+    itemsContainer.innerHTML =
+      state.items
+        .map(renderCartItem)
+        .join('');
+
   }
 
-  totalEl.textContent = 'Rp' + totalPrice.toLocaleString('id-ID');
 
-  // buka/tutup drawer
-  if (state.isOpen) {
-    drawer.classList.remove('translate-x-full');
-    overlay.classList.remove('hidden');
-  } else {
-    drawer.classList.add('translate-x-full');
-    overlay.classList.add('hidden');
+  // TOTAL
+
+  totalElement.textContent =
+    'Rp' +
+    formatRupiah(totalPrice);
+
+
+  // DRAWER
+
+  if (drawer && overlay) {
+
+    if (state.isOpen) {
+
+      drawer.classList.remove(
+        'translate-x-full'
+      );
+
+      overlay.classList.remove(
+        'hidden'
+      );
+
+    } else {
+
+      drawer.classList.add(
+        'translate-x-full'
+      );
+
+      overlay.classList.add(
+        'hidden'
+      );
+
+    }
+
   }
 
-  // sinkron ke localStorage tiap kali state berubah
-  localStorage.setItem('cart', JSON.stringify(state.items));
+
+  // STORAGE
+
+  localStorage.setItem(
+    'cart',
+    JSON.stringify(state.items)
+  );
+
 }
 
-cartStore.subscribe(renderCart);
-renderCart(cartStore.getState()); // render pertama kali pas halaman dibuka
 
-// --- actions: nambah, kurang, hapus item ---
-function addToCart({ id, name, price }) {
-  const items = cartStore.getState().items;
-  const existing = items.find((item) => item.id === id);
+// ======================================================
+// SUBSCRIBE
+// ======================================================
+
+cartStore.subscribe(
+  renderCart
+);
+
+
+// ======================================================
+// INITIAL RENDER
+// ======================================================
+
+renderCart(
+  cartStore.getState()
+);
+
+
+// ======================================================
+// ADD TO CART
+// ======================================================
+
+function addToCart(product) {
+
+  const items =
+    cartStore
+      .getState()
+      .items;
+
+
+  const existing =
+    items.find(
+      item =>
+        String(item.id) ===
+        String(product.id)
+    );
+
 
   if (existing) {
+
     cartStore.setState({
-      items: items.map((item) => (item.id === id ? { ...item, qty: item.qty + 1 } : item)),
+
+      items:
+        items.map(item =>
+
+          String(item.id) ===
+          String(product.id)
+
+            ? {
+                ...item,
+                qty:
+                  Number(item.qty) + 1
+              }
+
+            : item
+
+        )
+
     });
+
   } else {
-    cartStore.setState({ items: [...items, { id, name, price, qty: 1 }] });
+
+    cartStore.setState({
+
+      items: [
+
+        ...items,
+
+        {
+          id:
+            product.id,
+
+          name:
+            product.name,
+
+          price:
+            Number(product.price),
+
+          image:
+            product.image || '',
+
+          qty:
+            1
+        }
+
+      ]
+
+    });
+
   }
+
 }
+
+
+// ======================================================
+// CHANGE QUANTITY
+// ======================================================
 
 function changeQty(id, delta) {
-  const items = cartStore.getState().items;
-  const updated = items
-    .map((item) => (item.id === id ? { ...item, qty: item.qty + delta } : item))
-    .filter((item) => item.qty > 0); // kalo qty jadi 0, item ilang dari keranjang
 
-  cartStore.setState({ items: updated });
+  const items =
+    cartStore
+      .getState()
+      .items;
+
+
+  const updated =
+    items
+      .map(item => {
+
+        if (
+          String(item.id) ===
+          String(id)
+        ) {
+
+          return {
+
+            ...item,
+
+            qty:
+              Number(item.qty) +
+              Number(delta)
+
+          };
+
+        }
+
+        return item;
+
+      })
+      .filter(
+        item =>
+          Number(item.qty) > 0
+      );
+
+
+  cartStore.setState({
+
+    items:
+      updated
+
+  });
+
 }
 
-// --- event listeners ---
-document.getElementById('cart-toggle').addEventListener('click', () => {
-  cartStore.setState({ isOpen: true });
-});
-document.getElementById('cart-close').addEventListener('click', () => {
-  cartStore.setState({ isOpen: false });
-});
-document.getElementById('cart-overlay').addEventListener('click', () => {
-  cartStore.setState({ isOpen: false });
-});
 
-// event delegation buat tombol +/- yang di-render dinamis
-document.getElementById('cart-items').addEventListener('click', (e) => {
-  const increaseBtn = e.target.closest('.cart-increase');
-  const decreaseBtn = e.target.closest('.cart-decrease');
+// ======================================================
+// OPEN CART
+// ======================================================
 
-  if (increaseBtn) changeQty(increaseBtn.dataset.id, 1);
-  if (decreaseBtn) changeQty(decreaseBtn.dataset.id, -1);
-});
+document
+  .getElementById('cart-toggle')
+  ?.addEventListener(
+    'click',
+    function () {
+
+      cartStore.setState({
+        isOpen: true
+      });
+
+    }
+  );
+
+
+// ======================================================
+// CLOSE CART
+// ======================================================
+
+document
+  .getElementById('cart-close')
+  ?.addEventListener(
+    'click',
+    function () {
+
+      cartStore.setState({
+        isOpen: false
+      });
+
+    }
+  );
+
+
+document
+  .getElementById('cart-overlay')
+  ?.addEventListener(
+    'click',
+    function () {
+
+      cartStore.setState({
+        isOpen: false
+      });
+
+    }
+  );
+
+
+// ======================================================
+// CART +/-
+// ======================================================
+
+document
+  .getElementById('cart-items')
+  ?.addEventListener(
+    'click',
+    function (event) {
+
+      const increase =
+        event.target.closest(
+          '.cart-increase'
+        );
+
+      const decrease =
+        event.target.closest(
+          '.cart-decrease'
+        );
+
+
+      if (increase) {
+
+        changeQty(
+          increase.dataset.id,
+          1
+        );
+
+      }
+
+
+      if (decrease) {
+
+        changeQty(
+          decrease.dataset.id,
+          -1
+        );
+
+      }
+
+    }
+  );
+
+
+// ======================================================
+// CLEAR CART
+// ======================================================
+
+document
+  .getElementById('clear-cart')
+  ?.addEventListener(
+    'click',
+    function () {
+
+      if (
+        cartStore
+          .getState()
+          .items
+          .length === 0
+      ) {
+
+        return;
+
+      }
+
+
+      const confirmClear =
+        confirm(
+          'Kosongkan semua isi keranjang?'
+        );
+
+
+      if (!confirmClear) return;
+
+
+      cartStore.setState({
+
+        items: []
+
+      });
+
+    }
+  );
