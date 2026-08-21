@@ -44,10 +44,9 @@ class Store {
     this.listeners.push(listener);
 
     return () => {
-      this.listeners =
-        this.listeners.filter(
-          (item) => item !== listener
-        );
+      this.listeners = this.listeners.filter(
+        (item) => item !== listener
+      );
     };
   }
 }
@@ -57,8 +56,7 @@ class Store {
 // CREATE STORE
 // ======================================================
 // cart.js dan products.js menggunakan createStore().
-// Jangan membuat cartStore/productStore di sini karena
-// keduanya sudah dibuat masing-masing di file tersebut.
+// Jadi fungsi ini harus tersedia secara global.
 // ======================================================
 
 function createStore(initialState = {}) {
@@ -69,11 +67,11 @@ function createStore(initialState = {}) {
 // ======================================================
 // THEME STORE
 // ======================================================
-// Theme.js menggunakan themeStore.
-// Jadi themeStore memang dibuat di store.js.
+// theme.js menggunakan themeStore.
+// Bagian ini TETAP dipertahankan.
 // ======================================================
 
-const themeStore = createStore({
+const themeStore = new Store({
   theme:
     localStorage.getItem("theme") || "light",
 });
