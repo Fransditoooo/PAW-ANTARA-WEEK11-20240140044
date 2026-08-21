@@ -1,6 +1,6 @@
-// ======================================================
+// =====================================================
 // LOAD CART
-// ======================================================
+// =====================================================
 
 function loadCartFromStorage() {
 
@@ -9,263 +9,218 @@ function loadCartFromStorage() {
     const saved =
       localStorage.getItem('cart');
 
-    return saved
-      ? JSON.parse(saved)
-      : [];
+    if (!saved) {
+      return [];
+    }
+
+    const parsed =
+      JSON.parse(saved);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed;
 
   } catch (error) {
 
     console.error(
-      'Gagal membaca cart:',
+      'Gagal membaca keranjang:',
       error
     );
 
     return [];
-
   }
-
 }
 
-
-// ======================================================
+// =====================================================
 // CART STORE
-// ======================================================
+// =====================================================
 
 const cartStore = createStore({
 
-  items:
-    loadCartFromStorage(),
+  items: loadCartFromStorage(),
 
-  isOpen:
-    false
+  isOpen: false,
 
 });
 
-
-// ======================================================
-// HELPERS
-// ======================================================
+// =====================================================
+// TOTAL QUANTITY
+// =====================================================
 
 function getTotalQty(items) {
 
   return items.reduce(
-    (total, item) =>
-      total + Number(item.qty || 0),
+    (total, item) => {
+
+      const qty =
+        Number(item.qty) || 0;
+
+      return total + qty;
+
+    },
     0
   );
 
 }
 
+// =====================================================
+// TOTAL PRICE
+// =====================================================
 
 function getTotalPrice(items) {
 
   return items.reduce(
-    (total, item) =>
-      total +
-      Number(item.price || 0) *
-      Number(item.qty || 0),
+    (total, item) => {
+
+      const price =
+        Number(item.price) || 0;
+
+      const qty =
+        Number(item.qty) || 0;
+
+      return total + price * qty;
+
+    },
     0
   );
 
 }
 
-
-function formatRupiah(value) {
-
-  return Number(value || 0)
-    .toLocaleString('id-ID');
-
-}
-
-
-// ======================================================
-// RENDER CART ITEM
-// ======================================================
+// =====================================================
+// CART ITEM
+// =====================================================
 
 function renderCartItem(item) {
 
-  const image =
-    item.image ||
-    'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=300&q=80';
+  const price =
+    Number(item.price) || 0;
 
+  const qty =
+    Number(item.qty) || 0;
 
   return `
 
     <div
-      class="
-        flex
-        gap-3
-        p-3
-        rounded-2xl
-        border
-        border-gray-200
-        dark:border-gray-800
-        bg-white
-        dark:bg-gray-900
-      "
+      class="flex items-center justify-between gap-3
+      border-b border-gray-100 dark:border-gray-700
+      pb-3"
     >
-
-      <img
-        src="${image}"
-        alt="${item.name}"
-        class="
-          w-16
-          h-16
-          rounded-xl
-          object-cover
-        "
-      >
-
 
       <div class="flex-1 min-w-0">
 
         <p
-          class="
-            text-sm
-            font-bold
-            truncate
-          "
+          class="text-sm font-medium
+          text-gray-800 dark:text-gray-100
+          truncate"
         >
-          ${item.name}
+          ${escapeCartHtml(item.name)}
         </p>
 
         <p
-          class="
-            text-xs
-            text-gray-400
-            mt-1
-          "
+          class="text-xs
+          text-gray-400 dark:text-gray-500"
         >
-          Rp${formatRupiah(item.price)}
+          Rp${price.toLocaleString('id-ID')}
+          / item
         </p>
-
-
-        <div
-          class="
-            flex
-            items-center
-            gap-2
-            mt-2
-          "
-        >
-
-          <button
-            type="button"
-            class="
-              cart-decrease
-              w-7
-              h-7
-              rounded-lg
-              bg-gray-100
-              dark:bg-gray-800
-              font-bold
-            "
-            data-id="${item.id}"
-          >
-            −
-          </button>
-
-
-          <span
-            class="
-              w-6
-              text-center
-              text-sm
-              font-bold
-            "
-          >
-            ${item.qty}
-          </span>
-
-
-          <button
-            type="button"
-            class="
-              cart-increase
-              w-7
-              h-7
-              rounded-lg
-              bg-blue-600
-              text-white
-              font-bold
-            "
-            data-id="${item.id}"
-          >
-            +
-          </button>
-
-        </div>
 
       </div>
 
+      <div class="flex items-center gap-2">
 
-      <div
-        class="
-          text-right
-          text-sm
-          font-bold
-          text-blue-600
-        "
-      >
-        Rp${formatRupiah(
-          item.price * item.qty
-        )}
+        <button
+          type="button"
+          class="cart-decrease
+          w-7 h-7 rounded
+          bg-gray-100 dark:bg-gray-700
+          text-gray-600 dark:text-gray-300
+          hover:bg-gray-200
+          dark:hover:bg-gray-600"
+          data-id="${item.id}"
+        >
+          −
+        </button>
+
+        <span
+          class="text-sm w-6
+          text-center font-semibold
+          text-gray-800 dark:text-gray-100"
+        >
+          ${qty}
+        </span>
+
+        <button
+          type="button"
+          class="cart-increase
+          w-7 h-7 rounded
+          bg-gray-100 dark:bg-gray-700
+          text-gray-600 dark:text-gray-300
+          hover:bg-gray-200
+          dark:hover:bg-gray-600"
+          data-id="${item.id}"
+        >
+          +
+        </button>
+
       </div>
 
     </div>
 
   `;
+}
+
+// =====================================================
+// ESCAPE HTML
+// =====================================================
+
+function escapeCartHtml(value) {
+
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
 }
 
-
-// ======================================================
+// =====================================================
 // RENDER CART
-// ======================================================
+// =====================================================
 
 function renderCart(state) {
 
   const badge =
-    document.getElementById(
-      'cart-badge'
-    );
-
-  const summary =
-    document.getElementById(
-      'cart-summary'
-    );
+    document.getElementById('cart-badge');
 
   const itemsContainer =
-    document.getElementById(
-      'cart-items'
-    );
+    document.getElementById('cart-items');
 
-  const totalElement =
-    document.getElementById(
-      'cart-total'
-    );
+  const totalEl =
+    document.getElementById('cart-total');
 
   const drawer =
-    document.getElementById(
-      'cart-drawer'
-    );
+    document.getElementById('cart-drawer');
 
   const overlay =
-    document.getElementById(
-      'cart-overlay'
-    );
-
+    document.getElementById('cart-overlay');
 
   if (
     !badge ||
     !itemsContainer ||
-    !totalElement
+    !totalEl ||
+    !drawer ||
+    !overlay
   ) {
 
+    console.error(
+      'Elemen keranjang tidak ditemukan.'
+    );
+
     return;
-
   }
-
 
   const totalQty =
     getTotalQty(state.items);
@@ -273,8 +228,9 @@ function renderCart(state) {
   const totalPrice =
     getTotalPrice(state.items);
 
-
+  // ===================================================
   // BADGE
+  // ===================================================
 
   if (totalQty > 0) {
 
@@ -283,75 +239,35 @@ function renderCart(state) {
         ? '99+'
         : totalQty;
 
-    badge.classList.remove(
-      'hidden'
-    );
-
-    badge.classList.add(
-      'flex'
-    );
+    badge.classList.remove('hidden');
 
   } else {
 
-    badge.classList.add(
-      'hidden'
-    );
-
-    badge.classList.remove(
-      'flex'
-    );
+    badge.classList.add('hidden');
 
   }
 
-
-  // SUMMARY
-
-  if (summary) {
-
-    summary.textContent =
-      `${totalQty} item`;
-
-  }
-
-
+  // ===================================================
   // ITEMS
+  // ===================================================
 
   if (state.items.length === 0) {
 
     itemsContainer.innerHTML = `
 
       <div
-        class="
-          py-16
-          text-center
-        "
+        class="text-center
+        text-gray-400
+        dark:text-gray-500
+        py-10"
       >
 
-        <div
-          class="
-            text-5xl
-            mb-4
-          "
-        >
+        <div class="text-4xl mb-3">
           🛒
         </div>
 
-        <p
-          class="
-            font-bold
-          "
-        >
+        <p>
           Keranjang masih kosong
-        </p>
-
-        <p
-          class="
-            text-xs
-            text-gray-400
-            mt-1
-          "
-        >
-          Yuk pilih produk favoritmu.
         </p>
 
       </div>
@@ -367,44 +283,43 @@ function renderCart(state) {
 
   }
 
-
+  // ===================================================
   // TOTAL
+  // ===================================================
 
-  totalElement.textContent =
+  totalEl.textContent =
     'Rp' +
-    formatRupiah(totalPrice);
+    totalPrice.toLocaleString('id-ID');
 
-
+  // ===================================================
   // DRAWER
+  // ===================================================
 
-  if (drawer && overlay) {
+  if (state.isOpen) {
 
-    if (state.isOpen) {
+    drawer.classList.remove(
+      'translate-x-full'
+    );
 
-      drawer.classList.remove(
-        'translate-x-full'
-      );
+    overlay.classList.remove(
+      'hidden'
+    );
 
-      overlay.classList.remove(
-        'hidden'
-      );
+  } else {
 
-    } else {
+    drawer.classList.add(
+      'translate-x-full'
+    );
 
-      drawer.classList.add(
-        'translate-x-full'
-      );
-
-      overlay.classList.add(
-        'hidden'
-      );
-
-    }
+    overlay.classList.add(
+      'hidden'
+    );
 
   }
 
-
-  // STORAGE
+  // ===================================================
+  // LOCAL STORAGE
+  // ===================================================
 
   localStorage.setItem(
     'cart',
@@ -413,64 +328,73 @@ function renderCart(state) {
 
 }
 
-
-// ======================================================
+// =====================================================
 // SUBSCRIBE
-// ======================================================
+// =====================================================
 
-cartStore.subscribe(
-  renderCart
-);
+cartStore.subscribe(renderCart);
 
-
-// ======================================================
-// INITIAL RENDER
-// ======================================================
-
+// Render pertama
 renderCart(
   cartStore.getState()
 );
 
-
-// ======================================================
+// =====================================================
 // ADD TO CART
-// ======================================================
+// =====================================================
 
-function addToCart(product) {
+function addToCart({
+  id,
+  name,
+  price,
+  stock = Infinity,
+}) {
 
   const items =
-    cartStore
-      .getState()
-      .items;
-
+    cartStore.getState().items;
 
   const existing =
     items.find(
-      item =>
-        String(item.id) ===
-        String(product.id)
+      (item) =>
+        String(item.id) === String(id)
     );
-
 
   if (existing) {
 
+    const currentQty =
+      Number(existing.qty) || 0;
+
+    const maxStock =
+      Number(stock);
+
+    // Jangan melebihi stok
+    if (
+      Number.isFinite(maxStock) &&
+      currentQty >= maxStock
+    ) {
+
+      alert(
+        `Stok ${name} hanya tersedia ${maxStock} item.`
+      );
+
+      return;
+
+    }
+
     cartStore.setState({
 
-      items:
-        items.map(item =>
+      items: items.map(
+        (item) =>
 
-          String(item.id) ===
-          String(product.id)
+          String(item.id) === String(id)
 
             ? {
                 ...item,
-                qty:
-                  Number(item.qty) + 1
+                qty: currentQty + 1,
               }
 
             : item
-
-        )
+      ),
 
     });
 
@@ -483,23 +407,16 @@ function addToCart(product) {
         ...items,
 
         {
-          id:
-            product.id,
+          id,
+          name,
+          price: Number(price),
+          qty: 1,
+          stock: Number.isFinite(Number(stock))
+            ? Number(stock)
+            : undefined,
+        },
 
-          name:
-            product.name,
-
-          price:
-            Number(product.price),
-
-          image:
-            product.image || '',
-
-          qty:
-            1
-        }
-
-      ]
+      ],
 
     });
 
@@ -507,144 +424,206 @@ function addToCart(product) {
 
 }
 
-
-// ======================================================
+// =====================================================
 // CHANGE QUANTITY
-// ======================================================
+// =====================================================
 
 function changeQty(id, delta) {
 
   const items =
-    cartStore
-      .getState()
-      .items;
-
+    cartStore.getState().items;
 
   const updated =
     items
-      .map(item => {
+      .map((item) => {
 
         if (
-          String(item.id) ===
-          String(id)
+          String(item.id) !== String(id)
         ) {
 
-          return {
-
-            ...item,
-
-            qty:
-              Number(item.qty) +
-              Number(delta)
-
-          };
+          return item;
 
         }
 
-        return item;
+        const currentQty =
+          Number(item.qty) || 0;
 
-      })
-      .filter(
-        item =>
-          Number(item.qty) > 0
-      );
+        let newQty =
+          currentQty + delta;
 
+        // Minimum 1
+        if (newQty < 1) {
+          newQty = 1;
+        }
+
+        // Batasi berdasarkan stok
+        const stock =
+          Number(item.stock);
+
+        if (
+          delta > 0 &&
+          Number.isFinite(stock) &&
+          newQty > stock
+        ) {
+
+          alert(
+            `Stok ${item.name} hanya ${stock} item.`
+          );
+
+          newQty = stock;
+
+        }
+
+        return {
+          ...item,
+          qty: newQty,
+        };
+
+      });
 
   cartStore.setState({
-
-    items:
-      updated
-
+    items: updated,
   });
 
 }
 
+// =====================================================
+// REMOVE ITEM
+// =====================================================
 
-// ======================================================
+function removeFromCart(id) {
+
+  const items =
+    cartStore.getState().items;
+
+  const updated =
+    items.filter(
+      (item) =>
+        String(item.id) !== String(id)
+    );
+
+  cartStore.setState({
+    items: updated,
+  });
+
+}
+
+// =====================================================
+// CLEAR CART
+// =====================================================
+
+function clearCart() {
+
+  cartStore.setState({
+    items: [],
+  });
+
+}
+
+// =====================================================
 // OPEN CART
-// ======================================================
+// =====================================================
 
-document
-  .getElementById('cart-toggle')
-  ?.addEventListener(
+const cartToggle =
+  document.getElementById('cart-toggle');
+
+if (cartToggle) {
+
+  cartToggle.addEventListener(
     'click',
-    function () {
+    () => {
 
       cartStore.setState({
-        isOpen: true
+        isOpen: true,
       });
 
     }
   );
 
+}
 
-// ======================================================
+// =====================================================
 // CLOSE CART
-// ======================================================
+// =====================================================
 
-document
-  .getElementById('cart-close')
-  ?.addEventListener(
+const cartClose =
+  document.getElementById('cart-close');
+
+if (cartClose) {
+
+  cartClose.addEventListener(
     'click',
-    function () {
+    () => {
 
       cartStore.setState({
-        isOpen: false
+        isOpen: false,
       });
 
     }
   );
 
+}
 
-document
-  .getElementById('cart-overlay')
-  ?.addEventListener(
+// =====================================================
+// OVERLAY
+// =====================================================
+
+const cartOverlay =
+  document.getElementById('cart-overlay');
+
+if (cartOverlay) {
+
+  cartOverlay.addEventListener(
     'click',
-    function () {
+    () => {
 
       cartStore.setState({
-        isOpen: false
+        isOpen: false,
       });
 
     }
   );
 
+}
 
-// ======================================================
-// CART +/-
-// ======================================================
+// =====================================================
+// QUANTITY BUTTON
+// =====================================================
 
-document
-  .getElementById('cart-items')
-  ?.addEventListener(
+const cartItems =
+  document.getElementById('cart-items');
+
+if (cartItems) {
+
+  cartItems.addEventListener(
     'click',
-    function (event) {
+    (event) => {
 
-      const increase =
+      const increaseButton =
         event.target.closest(
           '.cart-increase'
         );
 
-      const decrease =
+      const decreaseButton =
         event.target.closest(
           '.cart-decrease'
         );
 
-
-      if (increase) {
+      if (increaseButton) {
 
         changeQty(
-          increase.dataset.id,
+          increaseButton.dataset.id,
           1
         );
 
+        return;
+
       }
 
-
-      if (decrease) {
+      if (decreaseButton) {
 
         changeQty(
-          decrease.dataset.id,
+          decreaseButton.dataset.id,
           -1
         );
 
@@ -653,43 +632,117 @@ document
     }
   );
 
+}
 
-// ======================================================
-// CLEAR CART
-// ======================================================
+// =====================================================
+// CHECKOUT
+// =====================================================
 
-document
-  .getElementById('clear-cart')
-  ?.addEventListener(
-    'click',
-    function () {
+function checkoutCart() {
 
-      if (
-        cartStore
-          .getState()
-          .items
-          .length === 0
-      ) {
+  const items =
+    cartStore.getState().items;
 
-        return;
+  if (items.length === 0) {
 
-      }
+    alert(
+      'Keranjang masih kosong. Silakan tambahkan produk terlebih dahulu.'
+    );
 
+    return;
 
-      const confirmClear =
-        confirm(
-          'Kosongkan semua isi keranjang?'
-        );
+  }
 
+  const totalQty =
+    getTotalQty(items);
 
-      if (!confirmClear) return;
+  const totalPrice =
+    getTotalPrice(items);
 
+  const confirmation =
+    confirm(
 
-      cartStore.setState({
+      `Konfirmasi Checkout\n\n` +
 
-        items: []
+      `Jumlah produk: ${totalQty} item\n` +
 
-      });
+      `Total pembayaran: Rp${totalPrice.toLocaleString('id-ID')}\n\n` +
+
+      `Apakah kamu ingin melanjutkan checkout?`
+
+    );
+
+  if (!confirmation) {
+    return;
+  }
+
+  // Simpan informasi checkout terakhir
+  const checkoutData = {
+
+    items: items,
+
+    totalQty: totalQty,
+
+    totalPrice: totalPrice,
+
+    checkoutAt:
+      new Date().toISOString(),
+
+  };
+
+  localStorage.setItem(
+    'lastCheckout',
+    JSON.stringify(checkoutData)
+  );
+
+  // Kosongkan keranjang
+  clearCart();
+
+  // Tutup drawer
+  cartStore.setState({
+    isOpen: false,
+  });
+
+  alert(
+    'Checkout berhasil! Terima kasih sudah berbelanja di Toko Kita.'
+  );
+
+}
+
+// =====================================================
+// CHECKOUT BUTTON
+// =====================================================
+
+function setupCheckoutButton() {
+
+  const checkoutButtons =
+    document.querySelectorAll(
+      '#checkout-btn, .checkout-btn'
+    );
+
+  checkoutButtons.forEach(
+    (button) => {
+
+      button.addEventListener(
+        'click',
+        checkoutCart
+      );
 
     }
   );
+
+}
+
+// Jalankan setelah DOM siap
+if (document.readyState === 'loading') {
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    setupCheckoutButton
+  );
+
+} else {
+
+  setupCheckoutButton();
+
+}

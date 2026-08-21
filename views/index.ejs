@@ -1383,6 +1383,25 @@
 
 
 <!-- ====================================================== -->
+<!-- INITIAL PRODUCTS DATA -->
+<!-- ====================================================== -->
+
+<script
+  id="initial-products-data"
+  type="application/json"
+>
+<%- JSON.stringify(
+  typeof products !== "undefined" ? products : []
+) %>
+</script>
+
+<script>
+  window.__INITIAL_PRODUCTS__ = JSON.parse(
+    document.getElementById("initial-products-data").textContent
+  );
+</script>
+
+<!-- ====================================================== -->
 <!-- JAVASCRIPT -->
 <!-- ====================================================== -->
 

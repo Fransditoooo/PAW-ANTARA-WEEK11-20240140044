@@ -1,12 +1,24 @@
+// ======================================================
+// SIMPLE STATE MANAGEMENT
+// ======================================================
+
 class Store {
   constructor(initialState = {}) {
     this.state = initialState;
     this.listeners = [];
   }
 
+  // ====================================================
+  // GET STATE
+  // ====================================================
+
   getState() {
     return this.state;
   }
+
+  // ====================================================
+  // SET STATE
+  // ====================================================
 
   setState(updater) {
     const nextState =
@@ -24,62 +36,44 @@ class Store {
     });
   }
 
+  // ====================================================
+  // SUBSCRIBE
+  // ====================================================
+
   subscribe(listener) {
     this.listeners.push(listener);
 
     return () => {
-      this.listeners = this.listeners.filter(
-        (item) => item !== listener
-      );
+      this.listeners =
+        this.listeners.filter(
+          (item) => item !== listener
+        );
     };
   }
 }
 
 
-// ===============================
-// THEME STORE
-// ===============================
+// ======================================================
+// CREATE STORE
+// ======================================================
+// cart.js dan products.js menggunakan createStore().
+// Jangan membuat cartStore/productStore di sini karena
+// keduanya sudah dibuat masing-masing di file tersebut.
+// ======================================================
 
-const themeStore = new Store({
-  theme: localStorage.getItem("theme") || "light",
-});
-
-
-// ===============================
-// CART STORE
-// ===============================
-
-let savedCart = [];
-
-try {
-  savedCart = JSON.parse(
-    localStorage.getItem("cart") || "[]"
-  );
-
-  if (!Array.isArray(savedCart)) {
-    savedCart = [];
-  }
-} catch (error) {
-  savedCart = [];
+function createStore(initialState = {}) {
+  return new Store(initialState);
 }
 
-const cartStore = new Store({
-  items: savedCart,
-});
 
+// ======================================================
+// THEME STORE
+// ======================================================
+// Theme.js menggunakan themeStore.
+// Jadi themeStore memang dibuat di store.js.
+// ======================================================
 
-// ===============================
-// PRODUCT STORE
-// ===============================
-
-const productStore = new Store({
-  products: Array.isArray(window.initialProducts)
-    ? window.initialProducts
-    : [],
-
-  filter: "all",
-
-  searchQuery: "",
-
-  sort: "default",
+const themeStore = createStore({
+  theme:
+    localStorage.getItem("theme") || "light",
 });
